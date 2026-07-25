@@ -34,14 +34,12 @@ The same DOER_ID persists across all phases (plan, execute, fix) for a single ta
 
 ## Extracting the ### Verdict
 
-The checker's output is text. Extract the first line starting with `###`:
+The checker returns its verdict as the first line of its response. Extract it from the return value directly:
 
-- Read the checker's output file or return value
-- Find the first line matching `### PASS` or `### FAIL`
+- Parse the first line of the checker's return value
+- Match against `### PASS` or `### FAIL`
 - Use only that line for the main agent's decision
-- Never read beyond it
-
-On Claude, use the `Grep` tool with pattern `^### ` limited to 1 result to extract the verdict from the checker's output file, or parse the first line of the return value directly.
+- **Never read the checker's output file from disk** — that would violate content isolation. The verdict arrives in the return value.
 
 ## Handling Background Notifications
 
@@ -58,7 +56,7 @@ Register agent types in `.claude/agents/`:
 ```markdown
 ---
 name: task-doer
-description: Creates, builds, and writes. Plans first, then executes, then fixes on checker failure.
+description: Creates, builds, and writes. Plans first then immediately executes (no approval gate), then fixes on checker FAIL. Returns plan path, file paths, and product summary.
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 ---
 ```
@@ -66,7 +64,7 @@ tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 ```markdown
 ---
 name: task-checker
-description: Verifies work using TDD. Writes test plan first, gets approval, then writes and runs actual tests. Returns ### PASS or ### FAIL.
+description: Verifies work using TDD. Writes test plan first, then immediately writes and runs actual tests (no approval gate). Returns ### PASS or ### FAIL as first output line.
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 ```
